@@ -1,0 +1,45 @@
+name:                spec
+version:             0.1.0.0
+synopsis:            Associate artifacts with specification requirements
+description:         Please see README.md
+homepage:            https://github.com/richard-gebbia/spec#readme
+license:             MIT
+license-file:        LICENSE
+author:              Richard Gebbia
+maintainer:          richard.gebbia@gmail.com
+copyright:           2016 Richard Gebbia
+category:            Web
+build-type:          Simple
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Spec
+  build-depends:       base >= 4.7 && < 5
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5
+                     , text
+                     , aeson
+
+executable spec
+  hs-source-dirs:      app
+  main-is:             Main.hs
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5
+                     , spec
+                     , text
+                     , aeson
+                     , bytestring
+                     , optparse-applicative
+                     , ansi-wl-pprint
+
+test-suite spec-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Test.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+  build-depends:       base
+                     , spec
+                     , HUnit
+                     , aeson
