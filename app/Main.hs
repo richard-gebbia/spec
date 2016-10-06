@@ -13,7 +13,7 @@ import Spec as Spec
 import Text.PrettyPrint.ANSI.Leijen hiding ((<>), (<$>))
 
 data ElmSpec = ElmSpec
-    { features :: Spec.Spec
+    { requirements :: Spec.Spec
     , nextUid :: Int
     , title :: Text.Text
     } deriving(Show, Generic)
@@ -43,9 +43,9 @@ data ScopeOptions = ScopeOptions
 performScope :: ScopeOptions -> IO ()
 performScope (ScopeOptions specFile resourcesFile) = 
     let
-        specScope :: ElmSpec -> [Spec.FeatureLink] -> Spec.SpecScope
+        specScope :: ElmSpec -> [Spec.Resource] -> Spec.SpecScope
         specScope elmSpec resources =
-            Spec.specScope (features elmSpec) resources
+            Spec.specScope (requirements elmSpec) resources
     in
     performDecodeEncode specFile resourcesFile specScope
     
@@ -91,11 +91,11 @@ data DiffOptions = DiffOptions
 performDiff :: DiffOptions -> IO ()
 performDiff (DiffOptions spec1File spec2File) = 
     let 
-        featureDiff :: ElmSpec -> ElmSpec -> Spec.FeatureDiff
-        featureDiff spec1 spec2 =
-            Spec.featureDiff (features spec1) (features spec2)
+        specDiff :: ElmSpec -> ElmSpec -> Spec.SpecDiff
+        specDiff spec1 spec2 =
+            Spec.specDiff (requirements spec1) (requirements spec2)
     in
-    performDecodeEncode spec1File spec2File featureDiff
+    performDecodeEncode spec1File spec2File specDiff
 
 diffParser :: Parser DiffOptions
 diffParser = DiffOptions
@@ -130,7 +130,7 @@ performChangeScope (ChangeScopeOptions spec1 spec2 resources) = do
         (Right spec1', Right spec2', Right resources') ->
             encode 
             $ flip Spec.specChangeScope resources' 
-            $ Spec.featureDiff (features spec1') (features spec2')
+            $ Spec.specDiff (requirements spec1') (requirements spec2')
     DBSL8.putStrLn toPrint
 
 changeScopeParser :: Parser ChangeScopeOptions
@@ -174,11 +174,11 @@ specCmdParser = hsubparser
     (   command "scope" 
             (info (helper <*> scopeCmdParser)
                 (   fullDesc
-                <>  progDesc "Given a spec and some resources, generate a list of all unaddressed features and unassociated resources"))
+                <>  progDesc "Given a spec and some resources, generate a list of all unaddressed requirements and unassociated resources"))
     <>  command "diff-scope" 
             (info (helper <*> diffScopeCmdParser)
                 (   fullDesc
-                <>  progDesc "Given a diff of two specs and some resources, generate a list of all the resources that are linked to features that are different between the two specs as well as unaddressed features in the new spec and resources unassociated with the new spec."))
+                <>  progDesc "Given a diff of two specs and some resources, generate a list of all the resources that are linked to requirements that are different between the two specs as well as unaddressed requirements in the new spec and resources unassociated with the new spec."))
     <>  command "diff"
             (info (helper <*> diffCmdParser)
                 (   fullDesc
@@ -197,7 +197,7 @@ specCmdParserInfo =
         <>  progDescDoc  
             (Just
                 (   text "Keep track of your project by seeing what you need to change when your requirements change:\r\n" 
-                <>  text "      spec scope        - given a spec and some resources, generate a list of all unaddressed features and unassociated resources\r\n"
+                <>  text "      spec scope        - given a spec and some resources, generate a list of all unaddressed requirements and unassociated resources\r\n"
                 <>  text "      spec diff-scope   - given a diff of two specs and some resources, gets the items that will need to be addressed by the change\r\n"
                 <>  text "      spec diff         - given two specs, generate a diff object\r\n"
                 <>  text "      spec change-scope - give two specs and some resources, generate a diff of the two specs and pipe that into 'spec diff-scope'"

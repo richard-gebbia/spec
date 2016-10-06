@@ -10,49 +10,49 @@ import GHC.Generics
 
 -- Data Types
 
-data Feature = Feature
+data Requirement = Requirement
     { uid :: Int
     , name :: !Text.Text
     , description :: !Text.Text
     } deriving(Show, Generic, Eq)
 
-instance FromJSON Feature
-instance ToJSON Feature
+instance FromJSON Requirement
+instance ToJSON Requirement
 
-type Spec = [Feature]
+type Spec = [Requirement]
 
 
-data FeatureLink = FeatureLink
-    { featureUid :: Int
+data Resource = Resource
+    { requirementUid :: Int
     , uri :: Aeson.Value
     } deriving (Show, Generic, Eq)
 
-instance FromJSON FeatureLink
-instance ToJSON FeatureLink
+instance FromJSON Resource
+instance ToJSON Resource
 
 
-data FeatureDiff = FeatureDiff
-    { changedFeatures :: [Feature]
-    , newFeatures :: [Feature]
-    , removedFeatures :: [Feature]
+data SpecDiff = SpecDiff
+    { changedRequirements :: [Requirement]
+    , newRequirements :: [Requirement]
+    , removedRequirements :: [Requirement]
     } deriving (Show, Generic, Eq)
 
-instance FromJSON FeatureDiff
-instance ToJSON FeatureDiff
+instance FromJSON SpecDiff
+instance ToJSON SpecDiff
 
 
 data SpecChangeScope = SpecChangeScope
-    { resourcesToUpdate :: [FeatureLink]
-    , featuresToAddress :: [Feature]
-    , deprecatedResources :: [FeatureLink]
+    { resourcesToUpdate :: [Resource]
+    , requirementsToAddress :: [Requirement]
+    , deprecatedResources :: [Resource]
     } deriving (Show, Generic, Eq)
 
 instance FromJSON SpecChangeScope
 instance ToJSON SpecChangeScope
 
 data SpecScope = SpecScope
-    { featuresNotAddressed :: [Feature]
-    , resourcesNotLinked :: [FeatureLink]
+    { requirementsNotAddressed :: [Requirement]
+    , resourcesNotLinked :: [Resource]
     } deriving (Show, Generic, Eq)
 
 instance FromJSON SpecScope
@@ -61,64 +61,64 @@ instance ToJSON SpecScope
 
 -- Functions
 
--- | Returns all the features that have no associated resources
-unaddressedFeatures 
+-- | Returns all the requirements that have no associated resources
+unaddressedRequirements 
     :: Spec 
-    -> [FeatureLink] 
-    -> [Feature]
-unaddressedFeatures spec linkedResources =
+    -> [Resource] 
+    -> [Requirement]
+unaddressedRequirements spec linkedResources =
     let 
-        featureUids :: [Int]
-        featureUids =
+        requirementUids :: [Int]
+        requirementUids =
             map uid spec
 
-        addressedFeatureUids :: [Int]
-        addressedFeatureUids = 
-            List.intersect featureUids
+        addressedRequirementUids :: [Int]
+        addressedRequirementUids = 
+            List.intersect requirementUids
             $ List.nub 
-            $ map featureUid linkedResources
+            $ map requirementUid linkedResources
 
-        unaddressedFeatureUids :: [Int]
-        unaddressedFeatureUids =
-            featureUids \\ addressedFeatureUids
+        unaddressedRequirementUids :: [Int]
+        unaddressedRequirementUids =
+            requirementUids \\ addressedRequirementUids
     in
-    filter ((`elem` unaddressedFeatureUids) . uid) spec
+    filter ((`elem` unaddressedRequirementUids) . uid) spec
 
 
--- | Returns all resources that don't have associated features 
--- (those features might be deprecated).
+-- | Returns all resources that don't have associated requirements 
+-- (those requirements might be deprecated).
 unassociatedResources 
     :: Spec 
-    -> [FeatureLink] 
-    -> [FeatureLink]
+    -> [Resource] 
+    -> [Resource]
 unassociatedResources spec linkedResources =
     let 
         unassociatedResourceUids :: [Int]
         unassociatedResourceUids =
-            List.nub (map featureUid linkedResources) \\ map uid spec
+            List.nub (map requirementUid linkedResources) \\ map uid spec
     in
-    filter ((`elem` unassociatedResourceUids) . featureUid) linkedResources
+    filter ((`elem` unassociatedResourceUids) . requirementUid) linkedResources
 
 
 -- | Returns a data structure with two lists:
---      - all features that aren't addressed by the current set of resources
---      - all resources that aren't addressing a feature in the current spec
-specScope :: Spec -> [FeatureLink] -> SpecScope
+--      - all requirements that aren't addressed by the current set of resources
+--      - all resources that aren't addressing a requirement in the current spec
+specScope :: Spec -> [Resource] -> SpecScope
 specScope spec resources =
     SpecScope 
-        { featuresNotAddressed = unaddressedFeatures spec resources
+        { requirementsNotAddressed = unaddressedRequirements spec resources
         , resourcesNotLinked = unassociatedResources spec resources
         }
 
 
--- | All features that are different between the two specs
-featureDiff :: Spec -> Spec -> FeatureDiff
-featureDiff spec1 spec2 =
-    FeatureDiff
-        { changedFeatures =
+-- | All requirements that are different between the two specs
+specDiff :: Spec -> Spec -> SpecDiff
+specDiff spec1 spec2 =
+    SpecDiff
+        { changedRequirements =
             let 
-                featureWasChanged :: Feature -> Feature -> Bool
-                featureWasChanged newFeature oldFeature =
+                requirementWasChanged :: Requirement -> Requirement -> Bool
+                requirementWasChanged newFeature oldFeature =
                     uid newFeature == uid oldFeature &&
                     (
                         name newFeature /= name oldFeature ||
@@ -126,49 +126,49 @@ featureDiff spec1 spec2 =
                     )
             in
             List.intersectBy 
-                -- the more recent features is supplied before the older one because
+                -- the more recent requirements is supplied before the older one because
                 -- intersectBy grabs the element from the first list if the
                 -- equality test passes
-                featureWasChanged
+                requirementWasChanged
                 spec2 
                 spec1
 
-        , newFeatures =
+        , newRequirements =
             filter 
-                (\newFeature -> 
+                (\newRequirement -> 
                     all 
                         (\oldFeature -> 
-                            uid oldFeature /= uid newFeature) 
+                            uid oldFeature /= uid newRequirement) 
                         spec1) 
                 spec2
 
-        , removedFeatures =
+        , removedRequirements =
             filter
                 (\oldFeature ->
                     all
-                        (\newFeature ->
-                            uid newFeature /= uid oldFeature)
+                        (\newRequirement ->
+                            uid newRequirement /= uid oldFeature)
                         spec2)
                 spec1
         }
 
 
--- | Given a set of features that have been changed or added and a set of the
--- currently addressed features, returns a summary of all resources that might
--- need changing and features that haven't yet been addressed.
+-- | Given a set of requirements that have been changed or added and a set of the
+-- currently addressed requirements, returns a summary of all resources that might
+-- need changing and requirements that haven't yet been addressed.
 specChangeScope 
-    :: FeatureDiff 
-    -> [FeatureLink] 
+    :: SpecDiff 
+    -> [Resource] 
     -> SpecChangeScope
-specChangeScope (FeatureDiff changed new removed) linkedResources =
+specChangeScope (SpecDiff changed new removed) linkedResources =
     SpecChangeScope
         { resourcesToUpdate = 
             filter 
-                ((`elem` (map uid (changed <> new))) . featureUid) 
+                ((`elem` (map uid (changed <> new))) . requirementUid) 
                 linkedResources
 
-        , featuresToAddress = new
+        , requirementsToAddress = new
 
         , deprecatedResources =
-            filter ((`elem` (map uid removed)) . featureUid) linkedResources
+            filter ((`elem` (map uid removed)) . requirementUid) linkedResources
         }

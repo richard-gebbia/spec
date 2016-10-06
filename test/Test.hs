@@ -7,71 +7,71 @@ import Test.HUnit
 specScopeBVT :: Test
 specScopeBVT = 
     let
-        feature1 = Feature 1 "feature1 name" "feature1 description"
-        feature2 = Feature 2 "feature2 name" "feature2 description"
-        feature3 = Feature 3 "feature3 name" "feature3 description"
-        feature5 = Feature 5 "feature5 name" "feature5 description"
+        requirement1 = Requirement 1 "requirement1 name" "requirement1 description"
+        requirement2 = Requirement 2 "requirement2 name" "requirement2 description"
+        requirement3 = Requirement 3 "requirement3 name" "requirement3 description"
+        requirement5 = Requirement 5 "requirement5 name" "requirement5 description"
         
-        resource1 = FeatureLink 1 (Aeson.String "featurelink1")
-        resource2 = FeatureLink 1 (Aeson.String "featurelink2")
-        resource3 = FeatureLink 2 (Aeson.String "featurelink3")
-        resource4 = FeatureLink 3 (Aeson.String "featurelink4")
-        resource5 = FeatureLink 4 (Aeson.String "featurelink5")
+        resource1 = Resource 1 (Aeson.String "resource1")
+        resource2 = Resource 1 (Aeson.String "resource2")
+        resource3 = Resource 2 (Aeson.String "resource3")
+        resource4 = Resource 3 (Aeson.String "resource4")
+        resource5 = Resource 4 (Aeson.String "resource5")
 
-        toTestSpec = [feature1, feature2, feature3, feature5]
+        toTestSpec = [requirement1, requirement2, requirement3, requirement5]
         toTestResources = [resource1, resource2, resource3, resource4, resource5]
 
-        expected = SpecScope [feature5] [resource5]
+        expected = SpecScope [requirement5] [resource5]
     in
     TestCase (assertEqual "General use case for specScope" expected
         (specScope toTestSpec toTestResources))
 
 
-featureDiffBVT :: Test
-featureDiffBVT =
+requirementDiffBVT :: Test
+requirementDiffBVT =
     let
-        feature1 = Feature 1 "feature1 name" "feature1 description"
-        feature2 = Feature 2 "feature2 name" "feature2 description"
-        feature3 = Feature 3 "feature3 name" "feature3 description"
-        feature4 = Feature 4 "feature4 name" "feature4 description"
-        feature4' = Feature 4 "feature4 name" "feature4' description"
+        requirement1 = Requirement 1 "requirement1 name" "requirement1 description"
+        requirement2 = Requirement 2 "requirement2 name" "requirement2 description"
+        requirement3 = Requirement 3 "requirement3 name" "requirement3 description"
+        requirement4 = Requirement 4 "requirement4 name" "requirement4 description"
+        requirement4' = Requirement 4 "requirement4 name" "requirement4' description"
 
-        spec1 = [feature1, feature2, feature4]
-        spec2 = [feature2, feature3, feature4']
+        spec1 = [requirement1, requirement2, requirement4]
+        spec2 = [requirement2, requirement3, requirement4']
 
-        expected = FeatureDiff
-            { changedFeatures = [feature4']
-            , newFeatures = [feature3]
-            , removedFeatures = [feature1]
+        expected = SpecDiff
+            { changedRequirements = [requirement4']
+            , newRequirements = [requirement3]
+            , removedRequirements = [requirement1]
             }
     in
-    TestCase (assertEqual "General use case for featureDiff" expected
-        (featureDiff spec1 spec2))
+    TestCase (assertEqual "General use case for specDiff" expected
+        (specDiff spec1 spec2))
 
 
 specChangeScopeBVT :: Test
 specChangeScopeBVT = 
     let
-        feature1 = Feature 1 "feature1 name" "feature1 description"
-        feature3 = Feature 3 "feature3 name" "feature3 description"
-        feature4' = Feature 4 "feature4 name" "feature4' description"
+        requirement1 = Requirement 1 "requirement1 name" "requirement1 description"
+        requirement3 = Requirement 3 "requirement3 name" "requirement3 description"
+        requirement4' = Requirement 4 "requirement4 name" "requirement4' description"
 
-        diff = FeatureDiff
-            { changedFeatures = [feature4']
-            , newFeatures = [feature3]
-            , removedFeatures = [feature1]
+        diff = SpecDiff
+            { changedRequirements = [requirement4']
+            , newRequirements = [requirement3]
+            , removedRequirements = [requirement1]
             }
 
-        resource1 = FeatureLink 1 (Aeson.String "featurelink1")
-        resource2 = FeatureLink 1 (Aeson.String "featurelink2")
-        resource3 = FeatureLink 2 (Aeson.String "featurelink3")
-        resource4 = FeatureLink 4 (Aeson.String "featurelink4")
+        resource1 = Resource 1 (Aeson.String "resource1")
+        resource2 = Resource 1 (Aeson.String "resource2")
+        resource3 = Resource 2 (Aeson.String "resource3")
+        resource4 = Resource 4 (Aeson.String "resource4")
 
         resources = [resource1, resource2, resource3, resource4]
 
         expected = SpecChangeScope
             { resourcesToUpdate = [resource4]
-            , featuresToAddress = [feature3]
+            , requirementsToAddress = [requirement3]
             , deprecatedResources = [resource1, resource2]
             }
     in
@@ -80,4 +80,4 @@ specChangeScopeBVT =
 
 
 main :: IO Counts
-main = runTestTT $ TestList [specScopeBVT, featureDiffBVT, specChangeScopeBVT]
+main = runTestTT $ TestList [specScopeBVT, requirementDiffBVT, specChangeScopeBVT]
